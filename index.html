@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Receipt Detective</title>
+  <meta name="description" content="A daily puzzle: guess the year and region of a grocery receipt from its prices and products.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧾</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=IBM+Plex+Mono:wght@400;600&family=Space+Mono:wght@400;700&family=Special+Elite&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">🧾</span>
+      <div>
+        <h1>Receipt Detective</h1>
+        <div class="subtitle" id="puzzleLabel"></div>
+      </div>
+    </div>
+    <nav class="tools">
+      <button class="icon-btn" id="helpBtn" aria-label="How to play" title="How to play">?</button>
+      <button class="icon-btn" id="statsBtn" aria-label="Statistics" title="Statistics">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 20h3V10H4v10zm6.5 0h3V4h-3v16zM17 20h3v-7h-3v7z"/></svg>
+      </button>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <section class="receipt-col" aria-label="Receipt">
+      <div id="receipt" aria-live="polite"></div>
+    </section>
+
+    <section class="panel-col">
+      <div class="card" id="yearPhase">
+        <div class="step" id="clueStep"></div>
+        <h2>What year is this receipt from?</h2>
+        <div class="year-pick">
+          <button class="nudge" id="minus" aria-label="One year earlier">−</button>
+          <output id="yearOut" for="yearSlider">1987</output>
+          <button class="nudge" id="plus" aria-label="One year later">+</button>
+        </div>
+        <input type="range" id="yearSlider" min="1950" max="2025" step="1" value="1987" aria-label="Year">
+        <div class="scale"><span>1950</span><span>1975</span><span>2000</span><span>2025</span></div>
+        <button class="primary" id="guessBtn">Guess 1987</button>
+        <div class="hint" id="hint" role="status"></div>
+        <ol class="guesses" id="guessList"></ol>
+      </div>
+
+      <div class="card" id="regionPhase" hidden>
+        <div class="step">Bonus round</div>
+        <h2 id="regionTitle">Where was it rung up?</h2>
+        <p class="muted" id="regionHelp">Pick a part of the country. Regional brands, tax lines and prices are your clues.</p>
+        <svg id="usmap" class="usmap" role="group" aria-label="Map of US regions"></svg>
+        <div class="region-btns" id="regionBtns"></div>
+        <div class="row">
+          <button class="primary" id="regionLock" disabled>Pick a region</button>
+          <button class="ghost" id="regionSkip">Skip bonus</button>
+        </div>
+      </div>
+
+      <div class="card" id="revealPhase" hidden>
+        <div class="stamp" id="stamp"></div>
+        <div class="score" id="scoreLine"></div>
+        <div class="row">
+          <button class="primary" id="shareBtn">Copy result</button>
+          <button class="ghost" id="practiceBtn">Practice receipt</button>
+        </div>
+        <div class="toast" id="toast" role="status"></div>
+        <pre class="share-preview" id="sharePreview"></pre>
+        <div class="next" id="nextLine"></div>
+      </div>
+
+      <div class="card" id="thenNow" hidden>
+        <h3>Then vs. now</h3>
+        <p class="muted" id="thenNowIntro"></p>
+        <div class="table-wrap"><table class="tn" id="tnTable"></table></div>
+        <p class="tn-sum" id="tnSum"></p>
+      </div>
+
+      <div class="card" id="clueCard" hidden>
+        <h3>Clues you could have caught</h3>
+        <ul class="clues" id="clueList"></ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot-note">
+    Prices are approximations built from BLS average-price data and historical records. Every receipt is generated; store names, dates and card numbers are fictional.
+  </footer>
+
+  <dialog id="helpDlg">
+    <form method="dialog">
+      <h2>How to play</h2>
+      <p>Each day there's a new grocery receipt with the store and date blurred out.</p>
+      <ol>
+        <li><b>Guess the year</b> (1950–2025) from the prices. You get 4 guesses.</li>
+        <li>Each miss gives a hotter/colder hint and reveals more lines: more items, then the subtotal and tax, then the receipt's original printing.</li>
+        <li>Land within <b>2 years</b> to solve it.</li>
+        <li><b>Bonus:</b> guess the region from regional brands, tax lines and prices.</li>
+      </ol>
+      <p class="muted">🟩 within 2 years · 🟨 within 5 · 🟧 within 10 · 🟥 more than 10 off</p>
+      <p class="muted">Tip: bananas barely changed price for decades, and brands can't appear before they existed.</p>
+      <button class="primary" value="close">Start sleuthing</button>
+    </form>
+  </dialog>
+
+  <dialog id="statsDlg">
+    <form method="dialog">
+      <h2>Your record</h2>
+      <div class="stats" id="statsGrid"></div>
+      <div id="distGrid" class="dist"></div>
+      <button class="primary" value="close">Close</button>
+    </form>
+  </dialog>
+
+  <script src="data.js"></script>
+  <script src="receipt.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
