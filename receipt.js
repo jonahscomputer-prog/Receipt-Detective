@@ -411,9 +411,36 @@
     return `<div class="receipt style-thermal">${h}</div>`;
   }
 
+  // Wrap an original-style receipt in a "photo": tabletop, lighting,
+  // crumpled-paper shading, fold creases, aging and a camera angle.
+  // All randomness comes from the receipt's seed so it looks the same for everyone.
+  function photoWrap(rc, html) {
+    const r = mulberry32((rc.params.seed ^ 0x2545F491) >>> 0);
+    const age = RD_AGE(rc.year);
+    const tilt = (r() * 5 - 2.5).toFixed(2);
+    const rx = (4 + r() * 6).toFixed(1);
+    const ry = (r() * 6 - 3).toFixed(1);
+    const folds = 1 + Math.floor(r() * 3);
+    const creases = [];
+    for (let k = 1; k <= folds; k++) creases.push(((k / (folds + 1)) * 100 + (r() * 8 - 4)).toFixed(1));
+    const creaseBg = creases.map(y => `linear-gradient(180deg, transparent calc(${y}% - 3px), rgba(0,0,0,.10) calc(${y}% - 1px), rgba(255,255,255,.55) ${y}%, rgba(0,0,0,.06) calc(${y}% + 2px), transparent calc(${y}% + 6px))`).join(',');
+    const vfold = r() < 0.35 ? `,linear-gradient(90deg, transparent calc(50% - 2px), rgba(0,0,0,.07) 50%, rgba(255,255,255,.4) calc(50% + 1px), transparent calc(50% + 4px))` : '';
+    const stain = r() < 0.3 ? `<div class="stain" style="left:${(10 + r() * 55).toFixed(0)}%;top:${(15 + r() * 60).toFixed(0)}%;transform:scale(${(0.8 + r() * 0.5).toFixed(2)})"></div>` : '';
+    const lightX = (20 + r() * 50).toFixed(0), lightY = (5 + r() * 25).toFixed(0);
+    const turbSeed = Math.floor(r() * 1000);
+    const vars = `--tilt:${tilt}deg;--rx:${rx}deg;--ry:${ry}deg;--age:${age.toFixed(2)};--lx:${lightX}%;--ly:${lightY}%;--creases:${creaseBg}${vfold}`;
+    const filterId = 'crumple-' + turbSeed;
+    const filt = `<svg class="fx-defs" width="0" height="0" aria-hidden="true"><filter id="${filterId}" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.018 0.03" numOctaves="2" seed="${turbSeed}" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="${(3 + r() * 4).toFixed(1)}" xChannelSelector="R" yChannelSelector="G"/></filter></svg>`;
+    const photo = html.replace('class="receipt ', `style="filter:url(#${filterId})" class="receipt photo `)
+      .replace(/<\/div>$/, `<div class="paper-shade"></div><div class="paper-creases"></div>${stain}</div>`);
+    return `<div class="photo-scene table-${rc.style}" style="${vars}">${filt}<div class="photo-tilt">${photo}</div><div class="photo-light"></div></div>`;
+  }
+  // How yellowed/faded the paper looks: older = more.
+  function RD_AGE(year) { return Math.max(0, Math.min(1, (NOW - year) / 70)); }
+
   function renderReceipt(rc, tier, newTier) {
     if (tier < 3) return renderNeutral(rc, tier, newTier);
-    return { hand: renderHand, tape: renderTape, dot: renderDot, thermal: renderThermal }[rc.style](rc);
+    return photoWrap(rc, { hand: renderHand, tape: renderTape, dot: renderDot, thermal: renderThermal }[rc.style](rc));
   }
 
   window.RD = { buildReceipt, renderReceipt, cluesFor, dailyParams, practiceParams, todayNumber, mulberry32, YMIN, YMAX, NOW };
