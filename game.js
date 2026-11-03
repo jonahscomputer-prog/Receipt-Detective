@@ -269,6 +269,7 @@
       $('tnTable').innerHTML = `<thead><tr><th>Item</th><th class="n">${R.year}</th><th class="n">In ${RD.NOW} dollars</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>Total paid</td><td class="n">${fmt(R.total)}</td><td class="n">${fmt(adj)}</td></tr></tfoot>`;
       $('thenNowIntro').textContent = `What each price works out to after general inflation since ${R.year}.`;
       $('tnSum').innerHTML = `This ${esc(R.kind.toLowerCase())} receipt came to <b>${fmt(R.total)}</b> in ${R.year}, about <b>${fmt(adj)}</b> in ${RD.NOW} dollars.`;
+      everyone();
       $('clueList').innerHTML = R.clues.map(c => `<li class="clue-${c.type}"><span class="tag">${c.type === 'region' ? '📍' : '📅'}</span>${esc(c.text)}</li>`).join('');
       return;
     }
@@ -294,6 +295,45 @@
 
     $('clueList').innerHTML = RD.cluesFor(rc).map(c => `<li class="clue-${c.type}"><span class="tag">${c.type === 'region' ? '📍' : '📅'}</span>${esc(c.text)}</li>`).join('');
   }
+  // ---------- everyone's results (shared store; only where the page host provides one) ----------
+  let evStarted = false;
+  async function everyone() {
+    if (evStarted || mode !== 'real') return;
+    evStarted = true;
+    const box = $('everyone');
+    if (!window.claude || typeof window.claude.use !== 'function') return; // e.g. GitHub Pages: hide
+    let db, user;
+    try { [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]); } catch (e) { return; }
+    if (!db) return;
+    const key = 'c' + todayN + '_' + rc.real.id.replace(/[^a-z0-9]/gi, '');
+    const used = solved() ? st.guesses.findIndex(g => offBy(g) <= SOLVE) + 1 : st.guesses.length;
+    const mine = { g: used, s: solved() };
+    box.hidden = false;
+    box.innerHTML = '<span class="muted">Loading everyone\'s results…</span>';
+    const show = docs => {
+      const rows = docs.map(d => (d.data() || {})[key]).filter(r => r && typeof r.g === 'number' && r.g >= 1 && r.g <= MAX_GUESSES);
+      if (!rows.length) { box.innerHTML = '<span class="muted">No one else has finished this case yet.</span>'; return; }
+      const avg = rows.reduce((a, r) => a + r.g, 0) / rows.length;
+      const pct = Math.round(100 * rows.filter(r => r.s).length / rows.length);
+      box.innerHTML = `<div class="ev-big"><b>${avg.toFixed(1)}</b><span>average guesses</span></div>`
+        + `<div class="ev-meta">${rows.length} player${rows.length === 1 ? '' : 's'} · ${pct}% solved · you used ${mine.g}${mine.s ? '' : ' (not solved)'}</div>`;
+    };
+    const timeout = setTimeout(() => { box.hidden = true; }, 10000);
+    // Save this player's result once, under their own id.
+    try {
+      const id = user ? await user.id() : null;
+      if (id) {
+        const ref = db.collection('plays').doc(id);
+        const snap = await ref.get();
+        const cur = snap.exists ? snap.data() : {};
+        if (!cur[key]) await ref.set(Object.assign({}, cur, { [key]: mine }));
+      }
+    } catch (e) { /* view-only visitors can read but not add their result */ }
+    try {
+      db.collection('plays').onSnapshot(q => { clearTimeout(timeout); show(q.docs); }, () => { clearTimeout(timeout); box.hidden = true; });
+    } catch (e) { clearTimeout(timeout); box.hidden = true; }
+  }
+
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   let timer = null;
