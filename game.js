@@ -65,9 +65,8 @@
     return `<div class="receipt style-neutral">${h}</div>`;
   }
   function renderRealHTML(R, tier, newTier, done) {
-    const toggle = `<div class="view-toggle" role="group" aria-label="Receipt view"><button data-view="photo" aria-pressed="${realView === 'photo'}">Photo</button><button data-view="digital" aria-pressed="${realView === 'digital'}">Digital copy</button></div>`;
-    if (realView === 'digital') return toggle + renderRealDigital(R, tier, newTier, done);
-    return toggle + renderRealPhoto(R, tier, newTier, done);
+    // Every real receipt shows the photo and its digital copy side by side.
+    return `<div class="real-pair">${renderRealPhoto(R, tier, newTier, done)}<div class="real-digital">${renderRealDigital(R, tier, newTier, done)}<div class="pair-caption">Digital copy</div></div></div>`;
   }
   function renderRealPhoto(R, tier, newTier, done) {
     const [cx0, cy0, cx1, cy1] = R.crop || [0, 0, R.w, R.h];
@@ -79,7 +78,7 @@
       if (open) return m.until === newTier ? `<div class="rmask flash" style="${style}"></div>` : '';
       return `<div class="rmask ${m.kind === 'blur' ? 'blurred' : 'rbar'}" style="${style}"></div>`;
     }).join('');
-    return `<figure class="real-photo"><div class="real-frame"><img src="${R.image}" alt="Photo of a real ${esc(R.kind.toLowerCase())} receipt, with some lines hidden" width="${W}" height="${H}">${masks}</div><figcaption>A real receipt · ${esc(R.credit)}</figcaption></figure>`;
+    return `<figure class="real-photo"><div class="real-frame"><img src="${R.image}" alt="Photo of a real ${esc(R.kind.toLowerCase())} receipt, with some lines hidden" width="${W}" height="${H}">${masks}</div><figcaption>${esc(R.credit)}</figcaption></figure>`;
   }
 
   const offBy = g => Math.abs(g - rc.year);
