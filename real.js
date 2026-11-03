@@ -1,0 +1,60 @@
+/*
+ * Real receipts: photos of any kind of receipt (grocery, restaurant, store,
+ * service) with a known year and place.
+ *
+ * Rules for adding one:
+ *  - Credible source: a photo someone shared with permission, or an archive
+ *    item that is public domain or openly licensed (credit it in `credit`).
+ *  - A reliable year and US location.
+ *  - At least 4 line items with reasonable, readable prices (`items`).
+ *  - Private details blurred into the image file (card numbers, IDs, names).
+ *
+ * `items` drives the Digital Copy tab (`printed` is the line as printed,
+ * `sub`/`flag` optional); prices must match the photo. `tier` is the clue
+ * (0-3) that uncovers each line, matching the photo masks.
+ * Mask coordinates are in pixels of the original photo (w x h; the file is
+ * cut to `crop` [x0, y0, x1, y1]) and are
+ * measured at the left edge of each band; bands are skewed by `skew`
+ * degrees to follow the slant of the printed lines.
+ * Private details (card number, transaction IDs, barcode, dates, manager
+ * name) are blurred into the image file itself.
+ */
+(function () {
+  window.RD_REAL = [
+    {
+      id: 'walmart-2021',
+      image: 'real/walmart-2021.jpg',
+      w: 1052, h: 1476, crop: [170, 90, 870, 1420], skew: -1.9,
+      year: 2021, region: 'MW', state: 'MO', place: 'Cameron, Missouri',
+      kind: 'Grocery', store: 'Walmart Supercenter',
+      items: [
+        { name: 'Hummus with roasted red pepper', printed: 'HUMMUS W/RO', flag: 'Y', price: 4.72, tier: 0 },
+        { name: 'Bananas', printed: 'BANANAS', sub: '2.21 lb. @ 1 lb. /0.46', plainSub: '2.21 lb at $0.46 per lb', flag: 'R', price: 1.02, tier: 0 },
+        { name: 'Deviled eggs', printed: 'DEVILED EGG', flag: 'Y', price: 4.94, tier: 1 },
+        { name: 'Cashews, roasted & salted', printed: 'CASHEW R/S', flag: 'R', price: 4.96, tier: 1 },
+        { name: 'Great Value banana chips', printed: 'GV BANANA CH', flag: 'R', price: 4.98, tier: 2 },
+        { name: 'Green Goodness smoothie', printed: 'GRN GOODNESS', flag: 'R', price: 4.98, tier: 2 },
+        { name: 'Pringles cheddar & sour cream', printed: 'PRG CHED SC', flag: 'R', price: 1.53, tier: 0 }
+      ],
+      subtotal: 27.13, taxLabel: 'Tax 6.975%', taxPrinted: 'TAX2  6.9750 %', tax: 1.89, total: 29.02, payment: 'Visa', paymentPrinted: 'VISA TEND',
+      credit: 'Photo shared by Jonah',
+      // until: clue tier that uncovers the band (1-3), or 'done' for the final reveal
+      masks: [
+        { x0: 200, x1: 720, y0: 200, y1: 446, until: 'done', kind: 'blur' },   // store header
+        { x0: 255, x1: 775, y0: 519, y1: 567, until: 1 },                      // deviled egg, cashews
+        { x0: 255, x1: 775, y0: 567, y1: 612, until: 2 },                      // GV banana chips, Green Goodness
+        { x0: 380, x1: 770, y0: 640, y1: 776, until: 2 },                      // subtotal, tax, total
+        { x0: 262, x1: 800, y0: 776, y1: 1172, until: 3 },                     // payment block
+        { x0: 200, x1: 860, y0: 1172, y1: 1380, until: 'done', kind: 'blur' }  // Walmart+ ad and slogan
+      ],
+      clues: [
+        { type: 'year', text: 'Bananas at 46¢ a pound: banana prices barely moved for years, so they are a decoy.' },
+        { type: 'year', text: 'Thermal paper, UPC codes on every line and a chip-card block ("AID", "No Signature Required") point to the late 2010s or later.' },
+        { type: 'year', text: 'The "Introducing Walmart+" ad dates it to after Walmart+ launched in September 2020.' },
+        { type: 'region', text: 'Groceries were taxed here (6.975% on the whole basket). Missouri is one of the few states that still taxes food.' },
+        { type: 'region', text: 'Area code 816 covers the Kansas City area of northwest Missouri.' },
+        { type: 'region', text: '"GV" is Great Value, Walmart\'s store brand, so the store itself doesn\'t narrow down the region.' }
+      ]
+    }
+  ];
+})();
