@@ -21,10 +21,6 @@
       </div>
     </div>
     <nav class="tools">
-      <div class="modes" role="group" aria-label="Game mode">
-        <button class="mode-btn" data-mode="daily" aria-pressed="true">Daily</button>
-        <button class="mode-btn" data-mode="real" aria-pressed="false">Real receipts</button>
-      </div>
       <button class="icon-btn" id="helpBtn" aria-label="How to play" title="How to play">?</button>
       <button class="icon-btn" id="statsBtn" aria-label="Statistics" title="Statistics">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 20h3V10H4v10zm6.5 0h3V4h-3v16zM17 20h3v-7h-3v7z"/></svg>
@@ -92,18 +88,18 @@
   </main>
 
   <footer class="foot-note">
-    Prices are approximations built from BLS average-price data and historical records. Daily receipts are generated, so their store names, dates and card numbers are fictional. Real receipts are genuine photos with private details blurred.
+    Every receipt is a real photo, with private details like card numbers blurred out.
   </footer>
 
   <dialog id="helpDlg">
     <form method="dialog">
       <h2>How to play</h2>
-      <p>Each day there's a new grocery receipt with the store and date blurred out.</p>
+      <p>Each day there's a real receipt with the store and date blurred out. Switch between the photo and a digital copy anytime.</p>
       <ol>
         <li><b>Guess the year</b> (1950–2025) from the prices. You get 4 guesses.</li>
-        <li>Each miss gives a hotter/colder hint and reveals more lines: more items, then the subtotal and tax, then the receipt's original printing.</li>
+        <li>Each miss gives a hotter/colder hint and reveals more lines: more items, then the subtotal and tax, then the total and payment.</li>
         <li>Land within <b>2 years</b> to solve it.</li>
-        <li><b>Bonus:</b> guess the region from regional brands, tax lines and prices.</li>
+        <li><b>Bonus:</b> guess the region from brands, tax lines and prices.</li>
       </ol>
       <p class="muted">🟩 within 2 years · 🟨 within 5 · 🟧 within 10 · 🟥 more than 10 off</p>
       <p class="muted">Tip: bananas barely changed price for decades, and brands can't appear before they existed.</p>

@@ -37,12 +37,12 @@
     mode = 'real';
     params = { seed: 0, real: R.id };
     rc = { real: R, year: R.year, region: R.region, state: R.state, items: [], params };
-    st = store.get('rd:real:' + R.id, { guesses: [], region: null });
+    st = store.get('rd:real:' + todayN + ':' + R.id, { guesses: [], region: null });
     lastTier = -1;
   }
   function save() {
     if (mode === 'daily') store.set('rd:day:' + todayN, st);
-    if (mode === 'real') store.set('rd:real:' + rc.real.id, st);
+    if (mode === 'real') store.set('rd:real:' + todayN + ':' + rc.real.id, st);
   }
 
   const bar = n => `<span class="bar" style="width:${Math.max(3, Math.min(22, n))}ch"></span>`;
@@ -219,7 +219,7 @@
   }
 
   function shareText() {
-    const head = mode === 'daily' ? `🧾 Receipt Detective #${todayN}` : mode === 'real' ? `🧾 Receipt Detective · Real ${rc.real.kind.toLowerCase()} receipt` : '🧾 Receipt Detective (practice)';
+    const head = mode === 'daily' ? `🧾 Receipt Detective #${todayN}` : mode === 'real' ? `🧾 Receipt Detective #${todayN}` : '🧾 Receipt Detective (practice)';
     const off = bestOff();
     const yr = `📅 ${solved() ? 'Solved' : 'Missed'} · off by ${off} · ${st.guesses.map(g => square(offBy(g))).join('')}`;
     const rg = st.region === 'skip' ? '📍 Region skipped' : `📍 Region ${regionRight() ? '✅' : '❌'}`;
@@ -238,6 +238,7 @@
     const yp = yearPoints(), rp = regionRight() ? 50 : 0;
     $('scoreLine').innerHTML = `<b>${yp + rp}</b>/150 &nbsp;·&nbsp; year ${yp} &nbsp;·&nbsp; region ${rp}`;
     $('sharePreview').textContent = shareText();
+    $('practiceBtn').hidden = mode === 'real';
     $('practiceBtn').textContent = mode === 'daily' ? 'Practice receipt' : 'Another practice receipt';
     updateNext();
 
@@ -280,9 +281,9 @@
   let timer = null;
   function updateNext() {
     clearInterval(timer);
-    if (mode !== 'daily') {
+    if (mode === 'practice') {
       $('nextLine').innerHTML = `<a href="#" id="backDaily">Back to today's receipt</a>`;
-      $('backDaily').onclick = e => { e.preventDefault(); switchMode('daily'); };
+      $('backDaily').onclick = e => { e.preventDefault(); switchMode('real'); };
       return;
     }
     const tick = () => {
@@ -300,7 +301,7 @@
   function renderAll() {
     $('puzzleLabel').textContent = mode === 'daily'
       ? `Case #${todayN} · ${new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}`
-      : mode === 'real' ? `Real case · a ${rc.real.kind.toLowerCase()} receipt` : 'Practice case · not counted in stats';
+      : mode === 'real' ? `Case #${todayN} · a real ${rc.real.kind.toLowerCase()} receipt` : 'Practice case · not counted in stats';
     document.querySelectorAll('.mode-btn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
     renderReceiptPanel();
     renderYear();
@@ -330,7 +331,7 @@
     if (phase() !== 'region') return;
     st.region = val;
     save();
-    if (mode === 'daily') recordStats();
+    if (mode === 'daily' || mode === 'real') recordStats();
     pendingRegion = null;
     renderAll();
     setTimeout(() => $('revealPhase').scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
@@ -409,8 +410,7 @@
     });
     const q = new URLSearchParams(location.search);
     if (q.has('practice')) loadPractice(+q.get('practice') >>> 0);
-    else if (q.has('real')) loadReal(q.get('real'));
-    else loadDaily();
+    else loadReal(q.get('real'));
     setYear(st.guesses.length ? st.guesses[st.guesses.length - 1] : 1987);
     renderAll();
     if (!store.get('rd:seenHelp', false)) { store.set('rd:seenHelp', true); $('helpDlg').showModal(); }

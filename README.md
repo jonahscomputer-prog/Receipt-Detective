@@ -1,8 +1,10 @@
 # 🧾 Receipt Detective
 
-A daily browser puzzle. Each day you get one grocery receipt with the store and date blurred out. Guess the year from the prices, then the region for bonus points, and share your result.
+A daily browser puzzle. Each day you get one real receipt (a photo plus a digital copy) with the store and date blurred out. Guess the year from the prices, then the region for bonus points, and share your result.
 
 ## How it plays
+
+The daily puzzle rotates through the real receipts in `real.js`. The receipt generator (`receipt.js`, `data.js`) is still in the repo but no longer shown on the page.
 
 - Guess the year (1950–2025) on a slider. You get 4 guesses; landing within 2 years solves it.
 - Each miss gives a hotter/colder hint and reveals more: two more items, then the subtotal and tax line, then the receipt's original printing style (handwritten slip, purple register tape, dot matrix or thermal).
