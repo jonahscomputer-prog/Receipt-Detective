@@ -21,6 +21,10 @@
       </div>
     </div>
     <nav class="tools">
+      <div class="modes" role="group" aria-label="Game mode">
+        <button class="mode-btn" data-mode="daily" aria-pressed="true">Daily</button>
+        <button class="mode-btn" data-mode="real" aria-pressed="false">Real receipt</button>
+      </div>
       <button class="icon-btn" id="helpBtn" aria-label="How to play" title="How to play">?</button>
       <button class="icon-btn" id="statsBtn" aria-label="Statistics" title="Statistics">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 20h3V10H4v10zm6.5 0h3V4h-3v16zM17 20h3v-7h-3v7z"/></svg>
@@ -88,7 +92,7 @@
   </main>
 
   <footer class="foot-note">
-    Prices are approximations built from BLS average-price data and historical records. Every receipt is generated; store names, dates and card numbers are fictional.
+    Prices are approximations built from BLS average-price data and historical records. Daily receipts are generated, so their store names, dates and card numbers are fictional. The bonus case is a real receipt with private details blurred.
   </footer>
 
   <dialog id="helpDlg">
@@ -117,6 +121,7 @@
   </dialog>
 
   <script src="data.js"></script>
+  <script src="real.js"></script>
   <script src="receipt.js"></script>
   <script src="game.js"></script>
 </body>

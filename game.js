@@ -12,7 +12,7 @@
   };
 
   // ---------- state ----------
-  let mode, params, rc, st, lastTier = -1;
+  let mode, params, rc, st, lastTier = -1, realDoneShown = false;
   const todayN = RD.todayNumber();
 
   function loadDaily() {
@@ -29,7 +29,31 @@
     st = { guesses: [], region: null };
     lastTier = -1;
   }
-  function save() { if (mode === 'daily') store.set('rd:day:' + todayN, st); }
+  function loadReal(id) {
+    const R = (window.RD_REAL || []).find(x => x.id === id) || window.RD_REAL[0];
+    mode = 'real';
+    params = { seed: 0, real: R.id };
+    rc = { real: R, year: R.year, region: R.region, state: R.state, items: [], params };
+    st = store.get('rd:real:' + R.id, { guesses: [], region: null });
+    lastTier = -1;
+  }
+  function save() {
+    if (mode === 'daily') store.set('rd:day:' + todayN, st);
+    if (mode === 'real') store.set('rd:real:' + rc.real.id, st);
+  }
+
+  function renderRealHTML(R, tier, newTier, done) {
+    const [cx0, cy0, cx1, cy1] = R.crop || [0, 0, R.w, R.h];
+    const W = cx1 - cx0, H = cy1 - cy0;
+    const px = (v, of) => (100 * v / of).toFixed(3) + '%';
+    const masks = R.masks.map(m => {
+      const open = m.until === 'done' ? done : tier >= m.until;
+      const style = `left:${px(m.x0 - cx0, W)};top:${px(m.y0 - cy0, H)};width:${px(m.x1 - m.x0, W)};height:${px(m.y1 - m.y0, H)};transform:skewY(${R.skew}deg)`;
+      if (open) return m.until === newTier ? `<div class="rmask flash" style="${style}"></div>` : '';
+      return `<div class="rmask ${m.kind === 'blur' ? 'blurred' : 'rbar'}" style="${style}"></div>`;
+    }).join('');
+    return `<figure class="real-photo"><div class="real-frame"><img src="${R.image}" alt="Photo of a real grocery receipt, with some lines hidden" width="${W}" height="${H}">${masks}</div><figcaption>A real receipt · ${esc(R.credit)}</figcaption></figure>`;
+  }
 
   const offBy = g => Math.abs(g - rc.year);
   const solved = () => st.guesses.some(g => offBy(g) <= SOLVE);
@@ -54,6 +78,13 @@
     const ph = phase();
     const tier = ph === 'year' ? Math.min(st.guesses.length, 3) : 3;
     const newTier = lastTier >= 0 && tier > lastTier ? tier : -1;
+    if (mode === 'real') {
+      const done = ph === 'done';
+      $('receipt').innerHTML = renderRealHTML(rc.real, tier, done && lastTier >= 0 && lastTier < 4 && !realDoneShown ? 'done' : newTier, done);
+      realDoneShown = done;
+      lastTier = tier;
+      return;
+    }
     $('receipt').innerHTML = RD.renderReceipt(rc, tier, newTier);
     if (tier === 3 && newTier === 3) $('receipt').firstElementChild.classList.add('develop');
     lastTier = tier;
@@ -85,7 +116,7 @@
     const last = st.guesses[n - 1];
     let hint = '';
     if (ph === 'year' && n > 0) {
-      const added = n === 1 ? 'Two more items revealed.' : n === 2 ? 'More items, plus the subtotal and tax line.' : 'The original receipt is revealed. Last guess!';
+      const added = mode === 'real' ? (n === 1 ? 'Two more lines uncovered.' : n === 2 ? 'More lines, plus the subtotal and tax.' : 'The payment section is uncovered. Last guess!') : n === 1 ? 'Two more items revealed.' : n === 2 ? 'More items, plus the subtotal and tax line.' : 'The original receipt is revealed. Last guess!';
       hint = `${temp(offBy(last)).icon} ${last < rc.year ? 'Too early.' : 'Too late.'} ${added}`;
     } else if (ph !== 'year') {
       hint = solved() ? `Nice work. It's from ${rc.year}.` : `It was ${rc.year}. You were ${bestOff()} years off at best.`;
@@ -161,7 +192,7 @@
   }
 
   function shareText() {
-    const head = mode === 'daily' ? `🧾 Receipt Detective #${todayN}` : '🧾 Receipt Detective (practice)';
+    const head = mode === 'daily' ? `🧾 Receipt Detective #${todayN}` : mode === 'real' ? '🧾 Receipt Detective · Real receipt' : '🧾 Receipt Detective (practice)';
     const off = bestOff();
     const yr = `📅 ${solved() ? 'Solved' : 'Missed'} · off by ${off} · ${st.guesses.map(g => square(offBy(g))).join('')}`;
     const rg = st.region === 'skip' ? '📍 Region skipped' : `📍 Region ${regionRight() ? '✅' : '❌'}`;
@@ -175,13 +206,24 @@
     ['revealPhase', 'thenNow', 'clueCard'].forEach(id => { $(id).hidden = !done; });
     if (!done) return;
     const S = D.STATES[rc.state];
-    $('stamp').innerHTML = `<div class="stamp-year">${rc.year}</div><div class="stamp-place">${S.n} · ${REG_NAMES[rc.region]}</div>`;
+    const place = mode === 'real' ? rc.real.place : S.n;
+    $('stamp').innerHTML = `<div class="stamp-year">${rc.year}</div><div class="stamp-place">${esc(place)} · ${REG_NAMES[rc.region]}</div>`;
     const yp = yearPoints(), rp = regionRight() ? 50 : 0;
     $('scoreLine').innerHTML = `<b>${yp + rp}</b>/150 &nbsp;·&nbsp; year ${yp} &nbsp;·&nbsp; region ${rp}`;
     $('sharePreview').textContent = shareText();
     $('practiceBtn').textContent = mode === 'daily' ? 'Practice receipt' : 'Another practice receipt';
     updateNext();
 
+    if (mode === 'real') {
+      const R = rc.real;
+      const adj = R.total * D.CPI[RD.NOW] / D.CPI[R.year];
+      $('thenNow').hidden = false;
+      $('tnTable').innerHTML = '';
+      $('thenNowIntro').textContent = '';
+      $('tnSum').innerHTML = `This basket came to <b>${fmt(R.total)}</b> in ${R.year}. After general inflation that is about <b>${fmt(adj)}</b> in ${RD.NOW} dollars.`;
+      $('clueList').innerHTML = R.clues.map(c => `<li class="clue-${c.type}"><span class="tag">${c.type === 'region' ? '📍' : '📅'}</span>${esc(c.text)}</li>`).join('');
+      return;
+    }
     // Then vs now
     const rows = rc.items.map(i => {
       const x = i.total > 0 ? i.nowTotal / i.total : 0;
@@ -208,7 +250,7 @@
     clearInterval(timer);
     if (mode !== 'daily') {
       $('nextLine').innerHTML = `<a href="#" id="backDaily">Back to today's receipt</a>`;
-      $('backDaily').onclick = e => { e.preventDefault(); loadDaily(); renderAll(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+      $('backDaily').onclick = e => { e.preventDefault(); switchMode('daily'); };
       return;
     }
     const tick = () => {
@@ -226,7 +268,8 @@
   function renderAll() {
     $('puzzleLabel').textContent = mode === 'daily'
       ? `Case #${todayN} · ${new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}`
-      : 'Practice case · not counted in stats';
+      : mode === 'real' ? 'Bonus case · a real receipt' : 'Practice case · not counted in stats';
+    document.querySelectorAll('.mode-btn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
     renderReceiptPanel();
     renderYear();
     renderRegion();
@@ -301,6 +344,14 @@
     setTimeout(() => el.classList.remove('show'), 2200);
   }
 
+  function switchMode(m) {
+    pendingRegion = null; realDoneShown = false;
+    if (m === 'real') loadReal(); else loadDaily();
+    setYear(st.guesses.length ? st.guesses[st.guesses.length - 1] : 1987);
+    renderAll();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   // ---------- wire up ----------
   function init() {
     buildMap();
@@ -316,8 +367,11 @@
     $('statsBtn').onclick = showStats;
     document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
 
+    document.querySelectorAll('.mode-btn').forEach(b => { b.onclick = () => switchMode(b.dataset.mode); });
     const q = new URLSearchParams(location.search);
-    if (q.has('practice')) loadPractice(+q.get('practice') >>> 0); else loadDaily();
+    if (q.has('practice')) loadPractice(+q.get('practice') >>> 0);
+    else if (q.has('real')) loadReal(q.get('real'));
+    else loadDaily();
     setYear(st.guesses.length ? st.guesses[st.guesses.length - 1] : 1987);
     renderAll();
     if (!store.get('rd:seenHelp', false)) { store.set('rd:seenHelp', true); $('helpDlg').showModal(); }
