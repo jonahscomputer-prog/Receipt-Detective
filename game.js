@@ -30,8 +30,15 @@
     lastTier = -1;
   }
   // Only receipts that meet the bar: at least 4 priced line items.
-  const REAL = (window.RD_REAL || []).filter(r => (r.items || []).filter(i => i.price > 0).length >= 4);
-  let realView = 'photo';
+  // and digital-copy prices that add up to the printed subtotal (so both tabs match).
+  const REAL = (window.RD_REAL || []).filter(r => {
+    const items = (r.items || []).filter(i => i.price > 0);
+    const sum = Math.round(items.reduce((a, i) => a + i.price, 0) * 100) / 100;
+    const ok = items.length >= 4 && (r.subtotal == null || Math.abs(sum - r.subtotal) < 0.005);
+    if (!ok) console.warn('Skipping real receipt', r.id, { items: items.length, sum, subtotal: r.subtotal });
+    return ok;
+  });
+  let realView = 'digital';
   function loadReal(id) {
     const R = REAL.find(x => x.id === id) || REAL[(todayN - 1) % REAL.length];
     mode = 'real';
@@ -47,26 +54,37 @@
 
   const bar = n => `<span class="bar" style="width:${Math.max(3, Math.min(22, n))}ch"></span>`;
   const rline = (l, r, cls) => `<div class="ln ${cls || ''}"><span class="l">${l}</span><span class="r">${r}</span></div>`;
+  // Digital Copy: a drawn version of the receipt, line for line as printed,
+  // with the same prices as the photo. Hidden lines are blurred placeholders.
   function renderRealDigital(R, tier, newTier, done) {
-    let h = `<div class="rc-head"><div class="lab">Digital copy · ${esc(R.kind)} receipt</div>
-      <div class="meta-row"><span>Store</span>${done ? esc(R.store) : bar(12)}</div>
-      <div class="meta-row"><span>Date</span>${done ? R.year + ' · ' + esc(R.place) : bar(8)}</div></div><div class="rule"></div>`;
+    const m = x => x.toFixed(2);
+    const hid = n => `<span class="blur" aria-hidden="true">${'X'.repeat(n)}</span>`;
+    const keep = (t, n) => done ? esc(t) : hid(n || t.length);
+    let h = `<div class="c big">${keep(R.store.toUpperCase())}</div><div class="c small">${done ? esc(R.place) : hid(18)}</div><div class="gap"></div>`;
     for (const it of R.items) {
-      if (it.tier <= tier) h += `<div class="item ${it.tier === newTier ? 'new' : ''}">${rline(esc(it.name), fmt(it.price))}${it.detail ? `<div class="sub">${esc(it.detail)}</div>` : ''}</div>`;
-      else h += `<div class="item hidden-line">${rline(bar(it.name.length * 0.8), bar(4))}</div>`;
+      const label = it.printed || it.name.toUpperCase();
+      if (it.tier <= tier) {
+        h += `<div class="${it.tier === newTier ? 'new' : ''}">${rline(esc(label), m(it.price) + ' ' + (it.flag || ''))}${it.sub ? `<div class="sub">${esc(it.sub)}</div>` : ''}</div>`;
+      } else {
+        h += rline(hid(label.length), hid(6)) + (it.sub ? `<div class="sub">${hid(it.sub.length)}</div>` : '');
+      }
     }
-    h += '<div class="rule"></div>';
     const t2 = tier >= 2, t3 = tier >= 3, c2 = newTier === 2 ? 'new' : '', c3 = newTier === 3 ? 'new' : '';
-    if (R.subtotal != null) h += rline('Subtotal', t2 ? fmt(R.subtotal) : bar(5), c2);
-    if (R.tax != null) h += rline(t2 ? esc(R.taxLabel || 'Tax') : 'Tax', t2 ? fmt(R.tax) : bar(4), c2);
-    h += rline('<b>Total</b>', t3 ? `<b>${fmt(R.total)}</b>` : bar(5), 'tot ' + c3);
-    if (R.payment) h += rline('Paid', t3 ? esc(R.payment) : bar(4), c3);
-    h += `<div class="foot">Transcribed from the photo.</div>`;
-    return `<div class="receipt style-neutral">${h}</div>`;
+    h += '<div class="gap"></div>';
+    if (R.subtotal != null) h += rline('SUBTOTAL', t2 ? m(R.subtotal) : hid(5), c2);
+    if (R.tax != null) h += rline(t2 ? esc(R.taxPrinted || 'TAX') : hid(12), t2 ? m(R.tax) : hid(4), c2);
+    h += rline('TOTAL', t3 ? m(R.total) : hid(5), 'tot ' + c3);
+    if (R.payment) h += rline(t3 ? esc(R.paymentPrinted || R.payment.toUpperCase()) : hid(9), t3 ? m(R.total) : hid(5), c3);
+    if (t3) h += rline('CHANGE DUE', '0.00', c3);
+    h += `<div class="gap"></div><div class="c small">${hid(22)}</div><div class="c">${t3 ? '# ITEMS SOLD ' + R.items.length : hid(14)}</div>`;
+    let x = 0, bars = '';
+    for (let k = 0; k < 46; k++) { const w = 1 + ((k * 7 + 3) % 3); if (k % 2 === 0) bars += `<rect x="${x}" y="0" width="${w}" height="34"/>`; x += w; }
+    h += `<svg class="barcode" viewBox="0 0 ${x} 34" preserveAspectRatio="none" aria-hidden="true">${bars}</svg>`;
+    return `<div class="receipt style-thermal digital-copy">${h}</div>`;
   }
   function renderRealHTML(R, tier, newTier, done) {
-    // Every real receipt shows the photo and its digital copy side by side.
-    return `<div class="real-pair">${renderRealPhoto(R, tier, newTier, done)}<div class="real-digital">${renderRealDigital(R, tier, newTier, done)}<div class="pair-caption">Digital copy</div></div></div>`;
+    const toggle = `<div class="view-toggle" role="group" aria-label="Receipt view"><button data-view="digital" aria-pressed="${realView === 'digital'}">Digital Copy</button><button data-view="photo" aria-pressed="${realView === 'photo'}">Physical Copy</button></div>`;
+    return toggle + (realView === 'photo' ? renderRealPhoto(R, tier, newTier, done) : renderRealDigital(R, tier, newTier, done));
   }
   function renderRealPhoto(R, tier, newTier, done) {
     const [cx0, cy0, cx1, cy1] = R.crop || [0, 0, R.w, R.h];
