@@ -62,21 +62,22 @@
     const keep = (t, n) => done ? esc(t) : hid(n || t.length);
     let h = `<div class="c big">${keep(R.store.toUpperCase())}</div><div class="c small">${done ? esc(R.place) : hid(18)}</div><div class="gap"></div>`;
     for (const it of R.items) {
-      const label = it.printed || it.name.toUpperCase();
+      const label = it.name.toUpperCase();
+      const sub = it.plainSub || it.sub;
       if (it.tier <= tier) {
-        h += `<div class="${it.tier === newTier ? 'new' : ''}">${rline(esc(label), m(it.price) + ' ' + (it.flag || ''))}${it.sub ? `<div class="sub">${esc(it.sub)}</div>` : ''}</div>`;
+        h += `<div class="${it.tier === newTier ? 'new' : ''}">${rline(esc(label), m(it.price))}${sub ? `<div class="sub">${esc(sub)}</div>` : ''}</div>`;
       } else {
-        h += rline(hid(label.length), hid(6)) + (it.sub ? `<div class="sub">${hid(it.sub.length)}</div>` : '');
+        h += rline(hid(label.length), hid(6)) + (sub ? `<div class="sub">${hid(sub.length)}</div>` : '');
       }
     }
     const t2 = tier >= 2, t3 = tier >= 3, c2 = newTier === 2 ? 'new' : '', c3 = newTier === 3 ? 'new' : '';
     h += '<div class="gap"></div>';
     if (R.subtotal != null) h += rline('SUBTOTAL', t2 ? m(R.subtotal) : hid(5), c2);
-    if (R.tax != null) h += rline(t2 ? esc(R.taxPrinted || 'TAX') : hid(12), t2 ? m(R.tax) : hid(4), c2);
+    if (R.tax != null) h += rline(t2 ? esc(('Sales ' + (R.taxLabel || 'tax')).toUpperCase()) : hid(12), t2 ? m(R.tax) : hid(4), c2);
     h += rline('TOTAL', t3 ? m(R.total) : hid(5), 'tot ' + c3);
-    if (R.payment) h += rline(t3 ? esc(R.paymentPrinted || R.payment.toUpperCase()) : hid(9), t3 ? m(R.total) : hid(5), c3);
+    if (R.payment) h += rline(t3 ? esc('PAID BY ' + R.payment.toUpperCase()) : hid(9), t3 ? m(R.total) : hid(5), c3);
     if (t3) h += rline('CHANGE DUE', '0.00', c3);
-    h += `<div class="gap"></div><div class="c small">${hid(22)}</div><div class="c">${t3 ? '# ITEMS SOLD ' + R.items.length : hid(14)}</div>`;
+    h += `<div class="gap"></div><div class="c small">${hid(22)}</div><div class="c">${t3 ? 'ITEMS SOLD: ' + R.items.length : hid(14)}</div>`;
     let x = 0, bars = '';
     for (let k = 0; k < 46; k++) { const w = 1 + ((k * 7 + 3) % 3); if (k % 2 === 0) bars += `<rect x="${x}" y="0" width="${w}" height="34"/>`; x += w; }
     h += `<svg class="barcode" viewBox="0 0 ${x} 34" preserveAspectRatio="none" aria-hidden="true">${bars}</svg>`;

@@ -28,13 +28,13 @@
       year: 2021, region: 'MW', state: 'MO', place: 'Cameron, Missouri',
       kind: 'Grocery', store: 'Walmart Supercenter',
       items: [
-        { name: 'Hummus', printed: 'HUMMUS W/RO', flag: 'Y', price: 4.72, tier: 0 },
-        { name: 'Bananas', printed: 'BANANAS', sub: '2.21 lb. @ 1 lb. /0.46', flag: 'R', price: 1.02, tier: 0 },
+        { name: 'Hummus with roasted red pepper', printed: 'HUMMUS W/RO', flag: 'Y', price: 4.72, tier: 0 },
+        { name: 'Bananas', printed: 'BANANAS', sub: '2.21 lb. @ 1 lb. /0.46', plainSub: '2.21 lb at $0.46 per lb', flag: 'R', price: 1.02, tier: 0 },
         { name: 'Deviled eggs', printed: 'DEVILED EGG', flag: 'Y', price: 4.94, tier: 1 },
         { name: 'Cashews, roasted & salted', printed: 'CASHEW R/S', flag: 'R', price: 4.96, tier: 1 },
         { name: 'Great Value banana chips', printed: 'GV BANANA CH', flag: 'R', price: 4.98, tier: 2 },
         { name: 'Green Goodness smoothie', printed: 'GRN GOODNESS', flag: 'R', price: 4.98, tier: 2 },
-        { name: 'Pringles cheddar', printed: 'PRG CHED SC', flag: 'R', price: 1.53, tier: 0 }
+        { name: 'Pringles cheddar & sour cream', printed: 'PRG CHED SC', flag: 'R', price: 1.53, tier: 0 }
       ],
       subtotal: 27.13, taxLabel: 'Tax 6.975%', taxPrinted: 'TAX2  6.9750 %', tax: 1.89, total: 29.02, payment: 'Visa', paymentPrinted: 'VISA TEND',
       credit: 'Photo shared by Jonah',
