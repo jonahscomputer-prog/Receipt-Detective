@@ -153,20 +153,25 @@
     const abbr = s.a.replace('{S}', sz[1]);
     let unit, now;
     if (s.fixed) { unit = s.fixed; now = s.fixed; }
+    else if (s.pa) {
+      const x = interp(s.pa, year) * (0.97 + r() * 0.06);
+      unit = x >= 10 ? Math.floor(x) + (r() < 0.7 ? 0.99 : 0.95) : storeRound(x, r);
+      now = s.t >= NOW ? endIn9(interp(s.pa, NOW)) : null;
+    }
     else {
       unit = storeRound(s.p * D.CPI[year] / D.CPI[NOW] * fac * (0.94 + r() * 0.12), r);
       now = endIn9(s.p * fac);
     }
     const it = {
       kind: 'special', tier, name, abbr, nonfood: s.nonfood,
-      dept: ({ soda: 'GR', chips: 'GR', cereal: 'GR', mayo: 'GR', icecream: 'FZ', cheese: 'DY', bakery: 'BK', snack: 'GR', frozen: 'FZ', pantry: 'GR', coffeebrand: 'GR', dairy: 'DY', drink: 'GR', paper: 'NF', clean: 'NF' })[s.slot] || 'GR',
+      dept: ({ soda: 'GR', chips: 'GR', cereal: 'GR', mayo: 'GR', icecream: 'FZ', cheese: 'DY', bakery: 'BK', snack: 'GR', frozen: 'FZ', pantry: 'GR', coffeebrand: 'GR', dairy: 'DY', drink: 'GR', paper: 'NF', clean: 'NF', health: 'HB', appliance: 'GM', electronics: 'GM', household: 'GM' })[s.slot] || 'GR',
       clue: s.c, clueType: s.r ? 'region' : (s.c ? 'year' : null), regions: s.r,
       sizeClue: s.slot === 'icecream' && iceSmall ? 'Ice cream "half gallons" shrank to 1.5 quarts around 2008.' : null,
       events: [], qty: 1, unit
     };
-    if (!s.fixed && unit < 3 && r() < 0.2) it.qty = 2;
+    if (!s.fixed && !s.pa && unit < 3 && r() < 0.2) it.qty = 2;
     it.total = round2(it.unit * it.qty);
-    it.nowTotal = round2(now * it.qty);
+    it.nowTotal = now == null ? null : round2(now * it.qty);
     return it;
   }
 
@@ -199,7 +204,9 @@
     take(elig.filter(s => !s.r && s.c && !s.nonfood && !s.fixed), 1, 2);
     take(elig.filter(s => s.r && s.r.length === 1), 3, 3);
     take(elig.filter(s => !s.r && s.c && !s.nonfood), 1, 3);
-    take(elig.filter(s => s.nonfood), 1, 3);
+    take(elig.filter(s => s.slot === 'paper' || s.slot === 'clean'), 1, 3);
+    if (r() < 0.7) take(elig.filter(s => s.slot === 'health'), 1, r() < 0.4 ? 2 : 3);
+    if (r() < 0.55) take(elig.filter(s => ['appliance', 'electronics', 'household'].includes(s.slot)), 1, 3);
     take(elig.filter(s => s.r && s.r.length > 1), 1, 3);
     const nSpecial = items.filter(i => i.kind === 'special').length;
     take(elig.filter(s => !s.r && !s.c && !s.nonfood), Math.max(0, 7 - nSpecial), 3);

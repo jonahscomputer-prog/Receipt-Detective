@@ -73,6 +73,10 @@
   // S(slot, name, receipt abbr, from, to, regions, 2025 price, clue, nonfood, fixedPrice)
   const S = (slot, n, a, f, t, r, p, c, nonfood, fixed) => ({ slot, n, a, f, t, r: r ? r.split(',') : null, p, c: c || null, nonfood: !!nonfood, fixed: fixed || null });
 
+  // P(slot, name, abbr, from, to, {year: nominal price}, clue): non-food items whose
+  // prices did not track CPI (appliances and electronics mostly got cheaper).
+  const P = (slot, n, a, f, t, pa, c) => Object.assign(S(slot, n, a, f, t, null, 0, c, true), { pa });
+
   const SPECIALS = [
     // Soda
     S('soda', 'Coca-Cola 6-pk', 'COCA-COLA 6PK', 1950, 1984, null, 4.49),
@@ -260,6 +264,56 @@
     S('drink', 'Red Bull 4-pk', 'RED BULL 4PK', 1997, 2025, null, 8.99, 'Red Bull came to the US in 1997.'),
     S('drink', 'Dasani water 6-pk', 'DASANI 6PK', 1999, 2025, null, 4.49, 'Dasani bottled water launched in 1999.'),
     S('drink', 'vitaminwater', 'VITAMINWATER', 2000, 2025, null, 2.29, 'vitaminwater launched in 2000.'),
+
+    // Health & beauty (non-food)
+    S('health', 'Bayer aspirin 100 ct', 'BAYER ASPIRIN', 1950, 2025, null, 9.99, null, true),
+    S('health', 'Tylenol 50 ct', 'TYLENOL', 1960, 2025, null, 9.99, 'Tylenol went over the counter in 1960.', true),
+    S('health', 'Advil 50 ct', 'ADVIL', 1984, 2025, null, 9.99, 'Advil went over the counter in 1984.', true),
+    S('health', 'Aleve 50 ct', 'ALEVE', 1994, 2025, null, 9.99, 'Aleve went over the counter in 1994.', true),
+    S('health', 'Claritin 10 ct', 'CLARITIN', 2003, 2025, null, 14.99, 'Claritin went over the counter at the end of 2002.', true),
+    S('health', 'Band-Aid bandages', 'BAND-AID', 1950, 2025, null, 4.99, null, true),
+    S('health', 'Pepto-Bismol', 'PEPTO-BISMOL', 1950, 2025, null, 7.99, null, true),
+    S('health', 'Alka-Seltzer', 'ALKA-SELTZER', 1950, 2025, null, 6.99, null, true),
+    S('health', 'Vicks VapoRub', 'VICKS VAPORUB', 1950, 2025, null, 7.99, null, true),
+    S('health', 'Crest toothpaste', 'CREST TPASTE', 1955, 2025, null, 3.99, 'Crest launched in 1955.', true),
+    S('health', 'Colgate toothpaste', 'COLGATE TPASTE', 1950, 2025, null, 3.99, null, true),
+    S('health', 'Flintstones vitamins', 'FLINTSTONES VIT', 1968, 2025, null, 10.99, 'Flintstones vitamins launched in 1968.', true),
+    S('health', 'Gillette Trac II blades', 'TRAC II BLADES', 1971, 1997, null, 12.99, 'Gillette Trac II, the first twin-blade razor, launched in 1971.', true),
+    S('health', 'Gillette Mach3 blades', 'MACH3 BLADES', 1998, 2025, null, 19.99, 'Gillette Mach3 launched in 1998.', true),
+    S('health', 'Nicorette gum', 'NICORETTE', 1996, 2025, null, 39.99, 'Nicorette gum went over the counter in 1996.', true),
+    P('health', 'At-home COVID test 2-pk', 'COVID TEST 2PK', 2021, 2025, { 2021: 23.99, 2023: 19.99, 2025: 15.99 }, 'At-home COVID tests hit pharmacy shelves in 2021.'),
+
+    // Small appliances (prices fell in real terms)
+    P('appliance', 'Pop-up toaster', 'TOASTER', 1950, 2025, { 1950: 17.95, 1960: 16.95, 1970: 14.95, 1980: 19.99, 1990: 19.99, 2010: 19.99, 2025: 24.99 }),
+    P('appliance', 'Electric percolator', 'PERCOLATOR', 1950, 1979, { 1950: 14.95, 1965: 16.95, 1979: 24.99 }, 'Electric percolators were the coffee maker until drip machines took over in the \'70s.'),
+    P('appliance', 'Mr. Coffee drip coffee maker', 'MR COFFEE MAKER', 1972, 2025, { 1972: 29.95, 1980: 29.99, 1990: 24.99, 2000: 19.99, 2010: 24.99, 2025: 34.99 }, 'Mr. Coffee\'s home drip machine launched in 1972.'),
+    P('appliance', 'Electric can opener', 'ELEC CAN OPENER', 1956, 2025, { 1956: 14.95, 1970: 12.95, 1990: 14.99, 2025: 19.99 }, 'Electric can openers appeared in 1956.'),
+    P('appliance', 'Hand mixer', 'HAND MIXER', 1950, 2025, { 1950: 19.95, 1970: 14.95, 1990: 16.99, 2010: 19.99, 2025: 24.99 }),
+    P('appliance', 'Crock-Pot slow cooker', 'CROCK-POT', 1971, 2025, { 1971: 24.95, 1980: 24.99, 1995: 24.99, 2010: 29.99, 2025: 39.99 }, 'Rival\'s Crock-Pot launched in 1971.'),
+    P('appliance', 'Microwave oven', 'MICROWAVE OVEN', 1978, 2025, { 1978: 299.0, 1985: 199.0, 1990: 149.0, 2000: 89.99, 2010: 79.99, 2025: 99.99 }, 'Countertop microwaves went mainstream from the late \'70s, and their price kept falling.'),
+    P('appliance', 'Keurig coffee brewer', 'KEURIG BREWER', 2004, 2025, { 2004: 149.99, 2010: 119.99, 2015: 99.99, 2025: 89.99 }, 'Keurig home brewers arrived in 2004.'),
+    P('appliance', 'Instant Pot', 'INSTANT POT', 2010, 2025, { 2010: 139.99, 2016: 99.99, 2020: 79.99, 2025: 79.99 }, 'The Instant Pot launched in 2010.'),
+    P('appliance', 'Air fryer', 'AIR FRYER', 2017, 2025, { 2017: 99.99, 2020: 69.99, 2025: 59.99 }, 'Air fryers took off around 2017.'),
+    P('appliance', 'Box fan', 'BOX FAN', 1950, 2025, { 1950: 24.95, 1970: 19.95, 1990: 19.99, 2010: 19.99, 2025: 29.99 }),
+
+    // Electronics & media
+    P('electronics', 'Kodak 35mm film, 24 exp', 'KODAK 35MM FILM', 1955, 2012, { 1955: 0.85, 1965: 1.29, 1975: 1.79, 1985: 3.29, 1995: 3.99, 2005: 4.49, 2012: 5.99 }, 'Film for cameras was a checkout staple until digital cameras won out in the 2000s.'),
+    P('electronics', 'Kodak Instamatic 126 film', 'KODAK 126 FILM', 1963, 1995, { 1963: 0.95, 1975: 1.79, 1985: 2.99, 1995: 3.99 }, 'Instamatic 126 film cartridges date from 1963 to the \'90s.'),
+    P('electronics', 'Flashcubes 3-pk', 'FLASHCUBES', 1965, 1985, { 1965: 1.39, 1975: 1.99, 1985: 2.79 }, 'Flashcubes for cameras were a \'60s and \'70s item.'),
+    P('electronics', 'Disposable camera', 'DISPOSABLE CAMERA', 1987, 2025, { 1987: 9.95, 1995: 7.99, 2005: 6.99, 2012: 9.99, 2025: 14.99 }, 'Disposable cameras arrived in 1987.'),
+    P('electronics', 'Blank cassette tape', 'BLANK CASSETTE', 1966, 2005, { 1966: 2.49, 1980: 2.99, 1990: 1.99, 2000: 1.49, 2005: 1.99 }, 'Blank cassettes were sold from the late \'60s into the 2000s.'),
+    P('electronics', 'Blank VHS tape', 'BLANK VHS T-120', 1977, 2006, { 1977: 19.95, 1985: 7.99, 1990: 4.99, 1995: 2.99, 2000: 2.49, 2006: 2.99 }, 'Blank VHS tapes date it between 1977 and the mid-2000s.'),
+    P('electronics', '3.5" floppy disks 10-pk', 'FLOPPY DISKS 10PK', 1985, 2005, { 1985: 39.95, 1990: 14.99, 1995: 7.99, 2000: 5.99, 2005: 6.99 }, '3.5-inch floppy disks were sold from the mid-\'80s to the mid-2000s.'),
+    P('electronics', 'Blank CD-R 10-pk', 'CD-R 10PK', 1997, 2015, { 1997: 29.99, 2000: 9.99, 2005: 7.99, 2010: 8.99, 2015: 9.99 }, 'Blank CD-Rs were a late-\'90s and 2000s item.'),
+    P('electronics', 'USB flash drive', 'USB FLASH DRIVE', 2002, 2025, { 2002: 49.99, 2005: 24.99, 2010: 12.99, 2015: 7.99, 2025: 9.99 }, 'USB flash drives arrived around 2001.'),
+    P('electronics', 'iTunes gift card', 'ITUNES GIFT CARD', 2004, 2019, { 2004: 15, 2019: 15 }, 'iTunes gift cards were sold from 2004 until Apple rebranded them in 2019.'),
+
+    // Household
+    P('household', 'Light bulbs 60W 4-pk', 'LIGHT BULBS 60W', 1950, 2013, { 1950: 0.99, 1970: 1.49, 1990: 2.49, 2010: 2.99, 2013: 3.49 }, 'Ordinary 60-watt bulbs were phased out in 2014.'),
+    P('household', 'LED light bulbs 4-pk', 'LED BULBS 4PK', 2012, 2025, { 2012: 24.99, 2015: 9.99, 2020: 5.99, 2025: 5.99 }, 'LED bulbs replaced incandescents in the 2010s and got cheap fast.'),
+    P('household', 'Eveready D batteries 2-pk', 'EVEREADY D 2PK', 1950, 2025, { 1950: 0.30, 1970: 0.89, 1990: 2.49, 2010: 3.99, 2025: 5.99 }),
+    P('household', 'Duracell AA batteries 4-pk', 'DURACELL AA 4PK', 1964, 2025, { 1964: 1.29, 1980: 2.99, 1990: 3.49, 2000: 3.99, 2010: 5.49, 2025: 7.99 }, 'The Duracell brand dates from 1964.'),
+    P('household', 'TV Guide', 'TV GUIDE', 1953, 2025, { 1953: 0.15, 1970: 0.15, 1975: 0.25, 1980: 0.50, 1990: 0.89, 2000: 1.99, 2010: 2.99, 2025: 4.99 }, 'TV Guide cost 15¢ from 1953 into the early \'70s.'),
 
     // Non-food (taxed almost everywhere)
     S('paper', 'Scott paper towels', 'SCOTT TOWELS', 1950, 2025, null, 2.49, null, true),

@@ -29,8 +29,11 @@
     st = { guesses: [], region: null };
     lastTier = -1;
   }
+  // Only receipts that meet the bar: at least 4 priced line items.
+  const REAL = (window.RD_REAL || []).filter(r => (r.items || []).filter(i => i.price > 0).length >= 4);
+  let realView = 'photo';
   function loadReal(id) {
-    const R = (window.RD_REAL || []).find(x => x.id === id) || window.RD_REAL[0];
+    const R = REAL.find(x => x.id === id) || REAL[(todayN - 1) % REAL.length];
     mode = 'real';
     params = { seed: 0, real: R.id };
     rc = { real: R, year: R.year, region: R.region, state: R.state, items: [], params };
@@ -42,7 +45,31 @@
     if (mode === 'real') store.set('rd:real:' + rc.real.id, st);
   }
 
+  const bar = n => `<span class="bar" style="width:${Math.max(3, Math.min(22, n))}ch"></span>`;
+  const rline = (l, r, cls) => `<div class="ln ${cls || ''}"><span class="l">${l}</span><span class="r">${r}</span></div>`;
+  function renderRealDigital(R, tier, newTier, done) {
+    let h = `<div class="rc-head"><div class="lab">Digital copy · ${esc(R.kind)} receipt</div>
+      <div class="meta-row"><span>Store</span>${done ? esc(R.store) : bar(12)}</div>
+      <div class="meta-row"><span>Date</span>${done ? R.year + ' · ' + esc(R.place) : bar(8)}</div></div><div class="rule"></div>`;
+    for (const it of R.items) {
+      if (it.tier <= tier) h += `<div class="item ${it.tier === newTier ? 'new' : ''}">${rline(esc(it.name), fmt(it.price))}${it.detail ? `<div class="sub">${esc(it.detail)}</div>` : ''}</div>`;
+      else h += `<div class="item hidden-line">${rline(bar(it.name.length * 0.8), bar(4))}</div>`;
+    }
+    h += '<div class="rule"></div>';
+    const t2 = tier >= 2, t3 = tier >= 3, c2 = newTier === 2 ? 'new' : '', c3 = newTier === 3 ? 'new' : '';
+    if (R.subtotal != null) h += rline('Subtotal', t2 ? fmt(R.subtotal) : bar(5), c2);
+    if (R.tax != null) h += rline(t2 ? esc(R.taxLabel || 'Tax') : 'Tax', t2 ? fmt(R.tax) : bar(4), c2);
+    h += rline('<b>Total</b>', t3 ? `<b>${fmt(R.total)}</b>` : bar(5), 'tot ' + c3);
+    if (R.payment) h += rline('Paid', t3 ? esc(R.payment) : bar(4), c3);
+    h += `<div class="foot">Transcribed from the photo.</div>`;
+    return `<div class="receipt style-neutral">${h}</div>`;
+  }
   function renderRealHTML(R, tier, newTier, done) {
+    const toggle = `<div class="view-toggle" role="group" aria-label="Receipt view"><button data-view="photo" aria-pressed="${realView === 'photo'}">Photo</button><button data-view="digital" aria-pressed="${realView === 'digital'}">Digital copy</button></div>`;
+    if (realView === 'digital') return toggle + renderRealDigital(R, tier, newTier, done);
+    return toggle + renderRealPhoto(R, tier, newTier, done);
+  }
+  function renderRealPhoto(R, tier, newTier, done) {
     const [cx0, cy0, cx1, cy1] = R.crop || [0, 0, R.w, R.h];
     const W = cx1 - cx0, H = cy1 - cy0;
     const px = (v, of) => (100 * v / of).toFixed(3) + '%';
@@ -52,7 +79,7 @@
       if (open) return m.until === newTier ? `<div class="rmask flash" style="${style}"></div>` : '';
       return `<div class="rmask ${m.kind === 'blur' ? 'blurred' : 'rbar'}" style="${style}"></div>`;
     }).join('');
-    return `<figure class="real-photo"><div class="real-frame"><img src="${R.image}" alt="Photo of a real grocery receipt, with some lines hidden" width="${W}" height="${H}">${masks}</div><figcaption>A real receipt · ${esc(R.credit)}</figcaption></figure>`;
+    return `<figure class="real-photo"><div class="real-frame"><img src="${R.image}" alt="Photo of a real ${esc(R.kind.toLowerCase())} receipt, with some lines hidden" width="${W}" height="${H}">${masks}</div><figcaption>A real receipt · ${esc(R.credit)}</figcaption></figure>`;
   }
 
   const offBy = g => Math.abs(g - rc.year);
@@ -116,7 +143,7 @@
     const last = st.guesses[n - 1];
     let hint = '';
     if (ph === 'year' && n > 0) {
-      const added = mode === 'real' ? (n === 1 ? 'Two more lines uncovered.' : n === 2 ? 'More lines, plus the subtotal and tax.' : 'The payment section is uncovered. Last guess!') : n === 1 ? 'Two more items revealed.' : n === 2 ? 'More items, plus the subtotal and tax line.' : 'The original receipt is revealed. Last guess!';
+      const added = mode === 'real' ? (n === 1 ? 'More lines uncovered.' : n === 2 ? 'More lines, plus the subtotal and tax.' : 'The total and payment are uncovered. Last guess!') : n === 1 ? 'Two more items revealed.' : n === 2 ? 'More items, plus the subtotal and tax line.' : 'The original receipt is revealed. Last guess!';
       hint = `${temp(offBy(last)).icon} ${last < rc.year ? 'Too early.' : 'Too late.'} ${added}`;
     } else if (ph !== 'year') {
       hint = solved() ? `Nice work. It's from ${rc.year}.` : `It was ${rc.year}. You were ${bestOff()} years off at best.`;
@@ -192,7 +219,7 @@
   }
 
   function shareText() {
-    const head = mode === 'daily' ? `🧾 Receipt Detective #${todayN}` : mode === 'real' ? '🧾 Receipt Detective · Real receipt' : '🧾 Receipt Detective (practice)';
+    const head = mode === 'daily' ? `🧾 Receipt Detective #${todayN}` : mode === 'real' ? `🧾 Receipt Detective · Real ${rc.real.kind.toLowerCase()} receipt` : '🧾 Receipt Detective (practice)';
     const off = bestOff();
     const yr = `📅 ${solved() ? 'Solved' : 'Missed'} · off by ${off} · ${st.guesses.map(g => square(offBy(g))).join('')}`;
     const rg = st.region === 'skip' ? '📍 Region skipped' : `📍 Region ${regionRight() ? '✅' : '❌'}`;
@@ -218,20 +245,25 @@
       const R = rc.real;
       const adj = R.total * D.CPI[RD.NOW] / D.CPI[R.year];
       $('thenNow').hidden = false;
-      $('tnTable').innerHTML = '';
-      $('thenNowIntro').textContent = '';
-      $('tnSum').innerHTML = `This basket came to <b>${fmt(R.total)}</b> in ${R.year}. After general inflation that is about <b>${fmt(adj)}</b> in ${RD.NOW} dollars.`;
+      const ratio = D.CPI[RD.NOW] / D.CPI[R.year];
+      const rows = R.items.map(i => `<tr><td>${esc(i.name)}</td><td class="n">${fmt(i.price)}</td><td class="n">${fmt(i.price * ratio)}</td></tr>`).join('');
+      $('tnTable').innerHTML = `<thead><tr><th>Item</th><th class="n">${R.year}</th><th class="n">In ${RD.NOW} dollars</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>Total paid</td><td class="n">${fmt(R.total)}</td><td class="n">${fmt(adj)}</td></tr></tfoot>`;
+      $('thenNowIntro').textContent = `What each price works out to after general inflation since ${R.year}.`;
+      $('tnSum').innerHTML = `This ${esc(R.kind.toLowerCase())} receipt came to <b>${fmt(R.total)}</b> in ${R.year}, about <b>${fmt(adj)}</b> in ${RD.NOW} dollars.`;
       $('clueList').innerHTML = R.clues.map(c => `<li class="clue-${c.type}"><span class="tag">${c.type === 'region' ? '📍' : '📅'}</span>${esc(c.text)}</li>`).join('');
       return;
     }
     // Then vs now
     const rows = rc.items.map(i => {
+      const label = `${esc(i.name)}${i.weight ? ` <span class="muted">(${i.weight.toFixed(2)} lb)</span>` : i.qty > 1 ? ` <span class="muted">×${i.qty}</span>` : ''}`;
+      if (i.nowTotal == null) return `<tr><td>${label}</td><td class="n">${fmt(i.total)}</td><td class="n muted" colspan="2">no longer sold</td></tr>`;
       const x = i.total > 0 ? i.nowTotal / i.total : 0;
-      return `<tr><td>${esc(i.name)}${i.weight ? ` <span class="muted">(${i.weight.toFixed(2)} lb)</span>` : i.qty > 1 ? ` <span class="muted">×${i.qty}</span>` : ''}</td><td class="n">${fmt(i.total)}</td><td class="n">${fmt(i.nowTotal)}</td><td class="n x">${x.toFixed(1)}×</td></tr>`;
+      return `<tr><td>${label}</td><td class="n">${fmt(i.total)}</td><td class="n">${fmt(i.nowTotal)}</td><td class="n x">${x.toFixed(1)}×</td></tr>`;
     }).join('');
-    const thenT = rc.items.reduce((a, i) => a + i.total, 0);
-    const nowT = rc.items.reduce((a, i) => a + i.nowTotal, 0);
-    $('tnTable').innerHTML = `<thead><tr><th>Item</th><th class="n">${rc.year}</th><th class="n">${RD.NOW}</th><th class="n">Change</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>Whole cart</td><td class="n">${fmt(thenT)}</td><td class="n">${fmt(nowT)}</td><td class="n x">${(nowT / thenT).toFixed(1)}×</td></tr></tfoot>`;
+    const still = rc.items.filter(i => i.nowTotal != null);
+    const thenT = still.reduce((a, i) => a + i.total, 0);
+    const nowT = still.reduce((a, i) => a + i.nowTotal, 0);
+    $('tnTable').innerHTML = `<thead><tr><th>Item</th><th class="n">${rc.year}</th><th class="n">${RD.NOW}</th><th class="n">Change</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>${still.length < rc.items.length ? 'Items still sold' : 'Whole cart'}</td><td class="n">${fmt(thenT)}</td><td class="n">${fmt(nowT)}</td><td class="n x">${(nowT / thenT).toFixed(1)}×</td></tr></tfoot>`;
     const adj = thenT * D.CPI[RD.NOW] / D.CPI[rc.year];
     $('thenNowIntro').textContent = `The same cart, before coupons and tax, at ${RD.NOW} prices in the same region.`;
     let verdict;
@@ -268,7 +300,7 @@
   function renderAll() {
     $('puzzleLabel').textContent = mode === 'daily'
       ? `Case #${todayN} · ${new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}`
-      : mode === 'real' ? 'Bonus case · a real receipt' : 'Practice case · not counted in stats';
+      : mode === 'real' ? `Real case · a ${rc.real.kind.toLowerCase()} receipt` : 'Practice case · not counted in stats';
     document.querySelectorAll('.mode-btn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
     renderReceiptPanel();
     renderYear();
@@ -368,6 +400,13 @@
     document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
 
     document.querySelectorAll('.mode-btn').forEach(b => { b.onclick = () => switchMode(b.dataset.mode); });
+    $('receipt').addEventListener('click', e => {
+      const b = e.target.closest('.view-toggle button');
+      if (!b || mode !== 'real') return;
+      realView = b.dataset.view;
+      lastTier = -1;
+      renderReceiptPanel();
+    });
     const q = new URLSearchParams(location.search);
     if (q.has('practice')) loadPractice(+q.get('practice') >>> 0);
     else if (q.has('real')) loadReal(q.get('real'));
