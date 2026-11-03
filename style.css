@@ -379,7 +379,7 @@ dialog li { margin-bottom: 6px; }
 .real-frame { position: relative; border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); line-height: 0; }
 .real-frame img { width: 100%; height: auto; display: block; }
 .rmask { position: absolute; transform-origin: 0 50%; pointer-events: none; }
-.rmask.rbar { background: #4a4037; border-radius: 3px; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .35); }
+.rmask.rbar { backdrop-filter: blur(5px) saturate(.6); -webkit-backdrop-filter: blur(5px) saturate(.6); background: rgba(240, 236, 228, .55); border-radius: 6px; }
 .rmask.blurred { backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px); background: rgba(245, 240, 230, .25); border-radius: 8px; }
 .rmask.flash { animation: maskflash 1.4s ease-out forwards; background: rgba(240, 223, 189, .7); }
 @keyframes maskflash { to { background: rgba(240, 223, 189, 0); } }
